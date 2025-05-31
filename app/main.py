@@ -7,16 +7,26 @@ from datetime import datetime
 from pathlib import Path
 import hashlib
 import sqlite3
+import os
 
 # st.title('Filmofil')
 
-# Naloadamo podatke
 @st.cache_data
 def load_data():
-    movies = pd.read_csv("./data/movies.csv")
-    ratings = pd.read_csv("./data/ratings.csv")
-    cast = pd.read_csv("./data/cast.csv")
+    base_path = os.path.dirname(__file__)
+    movies = pd.read_csv(os.path.join(base_path, "data/movies.csv"))
+    ratings = pd.read_csv(os.path.join(base_path, "data/ratings.csv"))
+    cast = pd.read_csv(os.path.join(base_path, "data/cast.csv"))
     return movies, ratings, cast
+
+
+# Naloadamo podatke
+# @st.cache_data
+# def load_data():
+#     movies = pd.read_csv("./data/movies.csv")
+#     ratings = pd.read_csv("./data/ratings.csv")
+#     cast = pd.read_csv("./data/cast.csv")
+#     return movies, ratings, cast
 
 movies, ratings, cast = load_data()
 
