@@ -13,9 +13,9 @@ import sqlite3
 # Naloadamo podatke
 @st.cache_data
 def load_data():
-    movies = pd.read_csv("data/movies.csv")
-    ratings = pd.read_csv("data/ratings.csv")
-    cast = pd.read_csv("data/cast.csv")
+    movies = pd.read_csv("./data/movies.csv")
+    ratings = pd.read_csv("./data/ratings.csv")
+    cast = pd.read_csv("./data/cast.csv")
     return movies, ratings, cast
 
 movies, ratings, cast = load_data()
