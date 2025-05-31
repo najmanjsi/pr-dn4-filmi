@@ -1,4 +1,3 @@
-# main.py
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -11,6 +10,7 @@ import os
 
 # st.title('Filmofil')
 
+# Naloadamo podatke
 @st.cache_data
 def load_data():
     base_path = os.path.dirname(__file__)
@@ -19,22 +19,12 @@ def load_data():
     cast = pd.read_csv(os.path.join(base_path, "data/cast.csv"))
     return movies, ratings, cast
 
-
-# Naloadamo podatke
-# @st.cache_data
-# def load_data():
-#     movies = pd.read_csv("./data/movies.csv")
-#     ratings = pd.read_csv("./data/ratings.csv")
-#     cast = pd.read_csv("./data/cast.csv")
-#     return movies, ratings, cast
-
 movies, ratings, cast = load_data()
 
-# Process movies to extract year
+# Za vsak film dobimo leto
 movies['year'] = movies['title'].str.extract(r'\((\d{4})\)').astype(float)
-movies['clean_title'] = movies['title'].str.replace(r'\(\d{4}\)', '').str.strip()
 
-# ----- User Authentication ----- #
+# Naredimo oz. se povežemo na users.db
 def create_connection():
     conn = sqlite3.connect("users.db")
     conn.execute('''CREATE TABLE IF NOT EXISTS users (
@@ -48,7 +38,9 @@ def create_connection():
 
 conn = create_connection()
 
-# Hash passwords
+
+# Ene par metod za prijavo in podobne zadevšne
+#
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
 
@@ -68,9 +60,9 @@ def login_user(username, password):
 def logout_user():
     return "username" in st.session_state
 
-# ----- App Navigation ----- #
-#page = st.sidebar.radio("Izberi stran", ["Analiza podatkov", "Primerjava filmov", "Priporočila", "Prijava / Registracija"])
-# Initialize page in session_state if not set
+# Navigacija
+#
+# Na začetku se bo pokazala analiza podatkov
 if "page" not in st.session_state:
     st.session_state.page = "Analiza podatkov"
 
@@ -80,11 +72,11 @@ for p in pages:
     if st.sidebar.button(p):
         st.session_state.page = p
 
-# Get active page
+# Trenutni page
 page = st.session_state.page
 
 
-# ----- ANALIZA PODATKOV ----- #
+# Analiza podatkov
 if page == "Analiza podatkov":
     st.title("Top 10 filmov po ocenah")
 
@@ -106,13 +98,15 @@ if page == "Analiza podatkov":
 
     st.dataframe(df[["title", "avg_rating", "count_rating"]])
 
-# ----- PRIMERJAVA FILMOV ----- #
+
+# Primerjava filmov
 elif page == "Primerjava filmov":
     st.title("Primerjava dveh filmov")
     movie_names = movies["title"].tolist()
     movie1 = st.selectbox("Izberi prvi film", movie_names)
     movie2 = st.selectbox("Izberi drugi film", movie_names, index=1)
 
+    # Tole izračuna vso statistiko, ki jo rabimo
     def movie_stats(title):
         mid = movies[movies.title == title].movieId.values[0]
         df = ratings[ratings.movieId == mid]
@@ -126,6 +120,7 @@ elif page == "Primerjava filmov":
             "yearly_count": df.groupby("year")["rating"].count().reset_index(name="count")
         }
 
+    # Naredimo 2 stolpca in v vsakega izpišemo statistiko za film
     col1, col2 = st.columns(2)
     with col1:
         s1 = movie_stats(movie1)
@@ -147,8 +142,10 @@ elif page == "Primerjava filmov":
         st.altair_chart(alt.Chart(s2['yearly_avg']).mark_line().encode(x='year:O', y='rating:Q'), use_container_width=True)
         st.altair_chart(alt.Chart(s2['yearly_count']).mark_bar().encode(x='year:O', y='count:Q'), use_container_width=True)
 
-# ----- PRIPOROČILA ----- #
+# Priporočilni sistem
 elif page == "Priporočila":
+
+    # Samo prijavljeni uporabniki lahko ocenjujejo filme
     if "username" not in st.session_state:
         st.warning("Najprej se prijavi.")
     else:
@@ -157,8 +154,6 @@ elif page == "Priporočila":
         cur = conn.cursor()
         cur.execute("SELECT movieId, rating FROM user_ratings WHERE username=?", (st.session_state.username,))
         user_data = pd.DataFrame(cur.fetchall(), columns=["movieId", "rating"])
-        #user_data["movieId"] = user_data["movieId"].astype(int)
-        # Decode byte strings and convert to int
         user_data["movieId"] = user_data["movieId"].apply(lambda x: int.from_bytes(x, byteorder="little") if isinstance(x, bytes) else int(x))
 
 
@@ -178,9 +173,9 @@ elif page == "Priporočila":
             conn.commit()
             st.success("Ocena shranjena!")
 
+        # Ko uporabnik oceni 10 filmov, izpišemo priporočila
         if len(user_data) >= 10:
             from sklearn.metrics.pairwise import cosine_similarity
-            from sklearn.feature_extraction.text import TfidfVectorizer
 
             user_vector = ratings.pivot_table(index='userId', columns='movieId', values='rating').fillna(0)
             my_vec = np.zeros(user_vector.shape[1])
@@ -188,6 +183,7 @@ elif page == "Priporočila":
                 if m in user_data.movieId.values:
                     my_vec[i] = user_data[user_data.movieId == m].rating.values[0]
 
+            # Delamo s kosinusno podobnostjo (baje se veliko uporablja za priporočilne sisteme)
             similarity = cosine_similarity([my_vec], user_vector.values)[0]
             top_users = user_vector.index[np.argsort(similarity)[-5:]]
             recs = user_vector.loc[top_users].mean().sort_values(ascending=False)
@@ -199,7 +195,7 @@ elif page == "Priporočila":
         else:
             st.info("Za priporočila morate oceniti vsaj 10 filmov.")
 
-# ----- REGISTRACIJA/PRIJAVA ----- #
+# Prijava/registracija/odjava
 elif page == "Prijava":
     st.title("Prijava")
     form = st.form("auth")
