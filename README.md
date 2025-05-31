@@ -3,8 +3,6 @@
 
 URL aplikacije: https://filmialneki.streamlit.app
 
-GitHub z izvorno kodo: https://github.com/najmanjsi/pr-dn4-filmi
-
 ### Analiza
 Ko vnesemo naslov in pridemo na aplikacijo, se nam najprej prikaže stran, kjer lahko določimo naslednje parametre: minimalna ocena (drsnik od 1 do 350), žanr in leto filma. Spodaj se nam izpišejo filmi, ki ustrezajo določenim parametrom.
 ![alt text](screenshots/analiza.png)
